@@ -5,6 +5,7 @@ using MonoMod.Cil;
 using R2API.Utils;
 using System;
 using BepInEx.Configuration;
+using UnityEngine;
 
 namespace Paddywan
 {
@@ -13,27 +14,22 @@ namespace Paddywan
     [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.0")]
     public class BetterBalance : BaseUnityPlugin
     {
-        private float _stickyMultiplier = 5.0f,
-            _bleedDamageMultiplier = 2.0f,
-            _bleedChancePerStack = 5f,
-            _iceRingMultiplier = 2.5f,
-            _ukuleleMultiplier = 1.0f,
-            _crowbarScalar = 0.08f,
-            _crowbarCap = 0.3f;
-        private int _predatoryBuffsPerStack = 3;
+        private float _stickyMultiplier = 5.0f, _stickyMin = 0f, _stickyMax = 10f,
+            _bleedDamageMultiplier = 2.0f, _bleedDamageMin = 0f, _bleedDamageMax = 4f,
+            _bleedChancePerStack = 5f, _bleedChanceMin = 0f, _bleedChanceMax = 15f,
+            _iceRingMultiplier = 2.5f, _iceRingMin = 0f, _iceRingMax = 5f,
+            _ukuleleMultiplier = 1.0f, _ukuleleMin = 0f, _ukuleleMax = 1.0f,
+            _crowbarScalar = 0.08f, _crowbarScalarMin = 0f, _crowbarScalarMax = 0.16f,
+            _crowbarCap = 0.3f, _crowbarCapMin = 0f, _crowbarCapMax = 0.4f,
+            _guilotineScalar = 0.10f, _guilotineScalarMin = 0f, _guilotineScalarMax = 0.16f,
+            _guilotineCap = 0.4f, _guilotineCapMin = 0f, _guilotineCapMax = 0.5f,
+            _APScalar = 0.1f, _APMin = 0f, _APMax = 0.2f;
+        private int _predatoryBuffsPerStack = 3, _predatoryMin = 2, _predatoryMax = 4;
 
-        private float StickyMultiplier { get { return _stickyMultiplier;} set {if (value > 0f && value <= 10f) _stickyMultiplier = value; } }
-        private float BleedDamageMultiplier { get { return _bleedDamageMultiplier; } set { if (value >= 0f && value <= 4f) _bleedDamageMultiplier = value; } }
-        private float BleedChancePerStack { get { return _bleedChancePerStack; }set { if (value >= 0f && value <= 15f) _bleedChancePerStack = value; } }
-        private float IceRingMultiplier { get { return _iceRingMultiplier; }set { if (value >= 0f && value <= 5f) _iceRingMultiplier = value; } }
-        private float UkuleleMultiplier { get { return _ukuleleMultiplier; }set { if (value > 0f && value <= 1.2f) _ukuleleMultiplier = value; } }
-        private float CrowbarScalar { get { return _crowbarScalar; }set { if (value > 0f && value <= 0.16f) _crowbarScalar = value; } }
-        private float CrowbarCap { get { return _crowbarCap; } set { if (value < 1f && value >= 0.6f) _crowbarCap = value; } }
-        private int PredatoryBuffsPerStack { get { return _predatoryBuffsPerStack; }set { if (value >= 0 && value <= 4) _predatoryBuffsPerStack = value; } }
-
-        private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap;
+        private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage;
         private ConfigWrapper<int> cPredatoryBuffsPerStack;
-        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold;
+        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled;
+
 
         public void Awake()
         {
@@ -42,28 +38,37 @@ namespace Paddywan
                 CommandHelper.RegisterCommands(self);
                 orig(self);
             };
-            cStickyMultiplier = Config.Wrap("Multipliers", "StickybombMultiplier", "Modifies the damage multiplier of the stickybomb: >0f, 1.8f vanilla, 5f default, <=10f", _stickyMultiplier);
-            StickyMultiplier = cStickyMultiplier.Value;
-            cBleedMultiplier = Config.Wrap("Multipliers", "BleedDamageMultiplier", "Modifies the damage multiplier value of tri-tip: >0f, 1.0f vanilla, 2f default <=4f", _bleedDamageMultiplier);
-            BleedDamageMultiplier = cBleedMultiplier.Value;
-            cBleedChancePerStack = Config.Wrap("Multipliers", "BleedChancePerStack", "Modifies the chance of inflicting bleed with tri-tip: >0f, 15f vanilla, 5f default, <=10f", _bleedChancePerStack);
-            BleedChancePerStack = cBleedChancePerStack.Value;
-            cIceRingMultiplier = Config.Wrap("Multipliers", "IceRingMultiplier", "Modifies the damage multiplier of the Ice Band: >0f, 1.25f vanilla, 2.5f default, <=5f", _iceRingMultiplier);
-            IceRingMultiplier = cIceRingMultiplier.Value;
-            cUkuleleMultiplier = Config.Wrap("Multipliers", "UkeleleMultiplier", "Modifies the damage multiplier of the Ukulele: >0f, 0.8f vanilla, 1.0f default, <=1.2f", _ukuleleMultiplier);
-            UkuleleMultiplier = cUkuleleMultiplier.Value;
+            cStickyMultiplier = Config.Wrap("Multipliers", "StickybombMultiplier", $"Modifies the damage multiplier of the stickybomb: >{_stickyMin}f, 1.8f vanilla, {_stickyMultiplier}f default, <={_stickyMax}f", _stickyMultiplier);
+            cBleedMultiplier = Config.Wrap("Multipliers", "BleedDamageMultiplier", $"Modifies the damage multiplier value of tri-tip: >{_bleedDamageMin}f, 1.0f vanilla, {_bleedDamageMultiplier}f default <={_bleedDamageMax}f", _bleedDamageMultiplier);
+            cBleedChancePerStack = Config.Wrap("Multipliers", "BleedChancePerStack", $"Modifies the chance of inflicting bleed with tri-tip: >{_bleedChanceMin}f, 15f vanilla, {_bleedChancePerStack}f default, <={_bleedChanceMax}f", _bleedChancePerStack);
+            cIceRingMultiplier = Config.Wrap("Multipliers", "IceRingMultiplier", $"Modifies the damage multiplier of the Ice Band: >{_iceRingMin}f, 1.25f vanilla, {_iceRingMultiplier}f default, <={_iceRingMax}f", _iceRingMultiplier);
+            cUkuleleMultiplier = Config.Wrap("Multipliers", "UkeleleMultiplier", $"Modifies the damage multiplier of the Ukulele: >{_ukuleleMin}f, 0.8f vanilla, {_ukuleleMultiplier}f default, <={_ukuleleMax}f", _ukuleleMultiplier);
+            _stickyMultiplier = (cStickyMultiplier.Value > _stickyMin && cStickyMultiplier.Value <= _stickyMax) ? cStickyMultiplier.Value : _stickyMultiplier;
+            _bleedDamageMultiplier = (cBleedMultiplier.Value > _bleedDamageMin && cBleedMultiplier.Value <= _bleedDamageMax) ? cBleedMultiplier.Value : _bleedDamageMultiplier;
+            _bleedChancePerStack = (cBleedChancePerStack.Value > _bleedChanceMin && cBleedChancePerStack.Value <= _bleedChanceMax) ? cBleedChancePerStack.Value : _bleedChancePerStack;
+            _iceRingMultiplier = (cIceRingMultiplier.Value > _iceRingMin && cIceRingMultiplier.Value <= _iceRingMax) ? cIceRingMultiplier.Value : _iceRingMultiplier;
+            _ukuleleMultiplier = (cUkuleleMultiplier.Value > _ukuleleMin && cUkuleleMultiplier.Value <= _ukuleleMax) ? cUkuleleMultiplier.Value : _ukuleleMultiplier;
 
-            cCrowbarDeminishingThreshold = Config.Wrap("Crowbar", "CrowbarDeminishingThreshold", "Enables a variable threshold for Crowbars which scales with deminishing returns, similar to a teddy.", true);
-            cCrowbarScalar = Config.Wrap("Crowbar", "CrowbarScalar", "Modifies the per stack scalar with deminishing returns: >0f, 0.08f default, <=0.16f", _crowbarScalar);
-            CrowbarScalar = cCrowbarScalar.Value;
-            cCrowbarCap = Config.Wrap("Crowbar", "CrowbarCap", "Modifies the cap of the maximum health for which the crowbars effect is applied: <1f, 0.7f default, >=0.6f", _bleedDamageMultiplier);
-            CrowbarCap = cCrowbarCap.Value;
+            cCrowbarDeminishingThreshold = Config.Wrap("Crowbar", "CrowbarDeminishingThresholdEnabled", "Enables a variable threshold for Crowbars which scales with deminishing returns, similar to a teddy.", true);
+            cCrowbarScalar = Config.Wrap("Crowbar", "CrowbarScalar", $"Modifies the per stack scalar with deminishing returns: >{_crowbarScalarMin}f, {_crowbarScalar}f default, <={_crowbarScalarMax}f", _crowbarScalar);
+            cCrowbarCap = Config.Wrap("Crowbar", "CrowbarCap", $"Modifies the cap of the maximum health for which the crowbars effect is applied, as a % of fullHP: >{_crowbarCapMin}f, {_crowbarCap}f default, <={_crowbarCapMax}f", _crowbarCap);
+            _crowbarScalar = (cCrowbarScalar.Value > _crowbarScalarMin && cCrowbarScalar.Value <= _crowbarScalarMax) ? cCrowbarScalar.Value : _crowbarScalar;
+            _crowbarCap = (cCrowbarCap.Value > _crowbarCapMin && cCrowbarCap.Value <= _crowbarCapMax) ? cCrowbarCap.Value : _crowbarCap;
 
-            cPredatoryBuffsPerStack = Config.Wrap("Mechanics", "PredatoryBuffsPerStack", "Alters the scaling of predatory isntincts to scale linearly instead of 3+2xStacks: >0i, 3i default, <=4", _predatoryBuffsPerStack);
-            PredatoryBuffsPerStack = cPredatoryBuffsPerStack.Value;
 
-            cAPElites = Config.Wrap("Mechanics", "APElites", "Alters the AP rounds to be inclusive of elite mobs: >0i, 3i default, <=4", true);
-            //_stickyMultiplier = (cStickyMultiplier.Value >= 0f && cStickyMultiplier.Value <= 10f) ? cStickyMultiplier.Value : _stickyMultiplier;
+            cGuillotineDeminishingThreshold = Config.Wrap("Guillotine", "GuillotineThresholdEnabled", "Enables a variable threshold for Guillotine which scales with deminishing returns, similar to a teddy.", true);
+            cGuillotineScalar = Config.Wrap("Guillotine", "GuillotineScalar", $"Modifies the per stack scalar with deminishing returns: >{_guilotineScalarMin}f, {_guilotineScalar}f default, <={_guilotineScalarMax}f", _guilotineScalar);
+            cGuillotineCap = Config.Wrap("Guillotine", "GuillotineCap", $"Modifies the cap of the minimum health for which the crowbars effect is applied, as a % of fullHP: >{_guilotineCapMin}f, {_guilotineCap}f default, <={_guilotineCapMax}f", _guilotineCap);
+            _guilotineScalar = (cGuillotineScalar.Value > _guilotineScalarMin && cGuillotineScalar.Value <= _guilotineScalarMax) ? cGuillotineScalar.Value : _guilotineScalar;
+            _guilotineCap = (cGuillotineCap.Value > _guilotineCapMin && cGuillotineCap.Value <= _guilotineCapMax) ? cGuillotineCap.Value : _guilotineCap;
+
+            cPredatoryEnabled = Config.Wrap("Predatory", "PredatoryEnmabled", "Enables linear predatory scaling: 3,6,9...", true);
+            cPredatoryBuffsPerStack = Config.Wrap("Predatory", "PredatoryBuffsPerStack", $"Alters the scaling of predatory isntincts to scale linearly instead of 3+2xStacks: >{_predatoryMin}i, {_predatoryBuffsPerStack}i default, <={_predatoryMax}", _predatoryBuffsPerStack);
+            _predatoryBuffsPerStack = (cPredatoryBuffsPerStack.Value > _predatoryMin && cPredatoryBuffsPerStack.Value <= _predatoryMax) ? cPredatoryBuffsPerStack.Value : _predatoryBuffsPerStack;
+
+            cAPElites = Config.Wrap("APRounds", "APElitesEnabled", "Alters the AP rounds to be inclusive of elite mobs", true);
+            cAPDamage = Config.Wrap("APRounds", "APDamageScalar", $"Alters the AP damage scalar to be lower than default due to increased effectiveness: >{_APMin}f, {_APScalar}f default, <={_APMax}f", _APScalar);
+            _APScalar = (cAPDamage.Value > _APMin && cAPDamage.Value <= _APMax) ? cAPDamage.Value : _APScalar;
 
             IL.RoR2.GlobalEventManager.OnHitEnemy += (il) =>
             {
@@ -113,26 +118,32 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldc_R4, _iceRingMultiplier);
                 c.Emit(OpCodes.Ldc_R4, 2.5f);
             };
+
             IL.RoR2.CharacterBody.AddTimedBuff += (il) =>
             {
                 var c = new ILCursor(il);
-                c.GotoNext(
-                    x => x.MatchLdloc(2),
-                    x => x.MatchLdcI4(1),
-                    x => x.MatchLdloc(1),
-                    x => x.MatchLdcI4(2)
-                    );
-                c.Index += 1;
-                c.Remove();
-                c.Index += 1;
-                c.Remove();
-                c.Emit(OpCodes.Ldc_I4, _predatoryBuffsPerStack);
-                c.Index += 1;
-                c.Remove();
+                if (cPredatoryEnabled.Value)
+                {
+                    c.GotoNext(
+                        x => x.MatchLdloc(2),
+                        x => x.MatchLdcI4(1),
+                        x => x.MatchLdloc(1),
+                        x => x.MatchLdcI4(2)
+                        );
+                    c.Index += 1;
+                    c.Remove();
+                    c.Index += 1;
+                    c.Remove();
+                    c.Emit(OpCodes.Ldc_I4, _predatoryBuffsPerStack);
+                    c.Index += 1;
+                    c.Remove();
+                }
             };
+
             IL.RoR2.HealthComponent.TakeDamage += (il) =>
             {
                 ILCursor c = new ILCursor(il);
+                #region Crowbar
                 if (cCrowbarDeminishingThreshold.Value)
                 {
                     c.GotoNext(
@@ -158,6 +169,7 @@ namespace Paddywan
                         return 0.9f;
                     });
                 }
+                #endregion
 
                 #region AP
                 if (cAPElites.Value)
@@ -182,6 +194,18 @@ namespace Paddywan
                     //c.Index = 1;
                     c.MarkLabel(lab1);
 
+                    //AP Multiplier
+                    c.GotoNext(
+                        x => x.MatchLdloc(4),
+                        x => x.MatchLdcR4(1.0f),
+                        x => x.MatchLdcR4(0.2f)
+                        );
+                    //Debug.Log(c);
+                    c.Index += 2;
+                    c.Remove();
+                    c.Emit(OpCodes.Ldc_R4, _APScalar);
+
+                    //Return label
                     c.GotoNext(
                         x => x.MatchLdarg(1),
                         x => x.MatchLdfld<DamageInfo>("crit")
@@ -191,18 +215,40 @@ namespace Paddywan
                     //Debug.Log(il);
                 }
                 #endregion
+
+                #region Guilotine
+                if (cGuillotineDeminishingThreshold.Value)
+                {
+                    c.GotoNext(
+                    x => x.MatchLdloc(1),
+                    x => x.MatchCallvirt<CharacterBody>("get_executeEliteHealthFraction"),
+                    x => x.MatchStloc(29)
+                    );
+                    c.Index++;
+                    c.Remove();
+                    c.EmitDelegate<Func<CharacterBody, float>>((cb) =>
+                    {
+                        if (cb.inventory && cb.inventory.GetItemCount(ItemIndex.ExecuteLowHealthElite) > 0)
+                        {
+                            return ((1f - 1f / (_guilotineScalar * (float)cb.inventory.GetItemCount(ItemIndex.ExecuteLowHealthElite) + 1f)) * _guilotineCap);
+                        }
+                        return cb.executeEliteHealthFraction;
+                    });
+                }
+                //Debug.Log(il);
+                #endregion
             };
         }
 
+        //public void Update()
+        //{
+        //    TestHelper.itemSpawnHelper();
+        //    TestHelper.spawnItem(KeyCode.F7, ItemIndex.BossDamageBonus);
 
-        public void Update()
-        {
-            //TestHelper.spawnItem(KeyCode.F7, ItemIndex.Crowbar);
+        //    TestHelper.spawnItem(KeyCode.F8, ItemIndex.RepeatHeal);
 
-            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.HealWhileSafe);
-
-            //TestHelper.spawnItem(KeyCode.F9, ItemIndex.AttackSpeedOnCrit);
-            //ItemIndex.BossDamageBonus
-        }
+        //    TestHelper.spawnItem(KeyCode.F9, ItemIndex.HealWhileSafe);
+        //    //ItemIndex.BossDamageBonus
+        //}
     }
 }
