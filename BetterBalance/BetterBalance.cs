@@ -3,6 +3,7 @@ using RoR2;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using R2API.Utils;
+using R2API;
 using System;
 using BepInEx.Configuration;
 using UnityEngine;
@@ -11,7 +12,7 @@ namespace Paddywan
 {
     [BepInDependency("com.bepis.r2api")]
     [BepInDependency("com.Squiddle.shapedglassbalance")]
-    [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.0")]
+    [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.1")]
     public class BetterBalance : BaseUnityPlugin
     {
         private float _stickyMultiplier = 5.0f, _stickyMin = 0f, _stickyMax = 10f,
@@ -21,14 +22,15 @@ namespace Paddywan
             _ukuleleMultiplier = 1.0f, _ukuleleMin = 0f, _ukuleleMax = 1.0f,
             _crowbarScalar = 0.08f, _crowbarScalarMin = 0f, _crowbarScalarMax = 0.16f,
             _crowbarCap = 0.3f, _crowbarCapMin = 0f, _crowbarCapMax = 0.4f,
-            _guilotineScalar = 0.10f, _guilotineScalarMin = 0f, _guilotineScalarMax = 0.16f,
-            _guilotineCap = 0.4f, _guilotineCapMin = 0f, _guilotineCapMax = 0.5f,
+            _guilotineScalar = 0.10f, _guilotineScalarMin = 0f, _guilotineScalarMax = 0.3f,
+            _guilotineCap = 0.45f, _guilotineCapMin = 0f, _guilotineCapMax = 0.6f,
             _APScalar = 0.1f, _APMin = 0f, _APMax = 0.2f;
         private int _predatoryBuffsPerStack = 3, _predatoryMin = 2, _predatoryMax = 4;
 
         private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage;
         private ConfigWrapper<int> cPredatoryBuffsPerStack;
         private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled;
+
 
 
         public void Awake()
@@ -240,15 +242,13 @@ namespace Paddywan
             };
         }
 
-        //public void Update()
-        //{
-        //    TestHelper.itemSpawnHelper();
-        //    TestHelper.spawnItem(KeyCode.F7, ItemIndex.BossDamageBonus);
+        public void Update()
+        {
+            //TestHelper.itemSpawnHelper();
+            //TestHelper.spawnItem(KeyCode.F7, ItemIndex.BossDamageBonus);
 
-        //    TestHelper.spawnItem(KeyCode.F8, ItemIndex.RepeatHeal);
-
-        //    TestHelper.spawnItem(KeyCode.F9, ItemIndex.HealWhileSafe);
-        //    //ItemIndex.BossDamageBonus
-        //}
+            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.ExecuteLowHealthElite);
+            //ItemIndex.BossDamageBonus
+        }
     }
 }
