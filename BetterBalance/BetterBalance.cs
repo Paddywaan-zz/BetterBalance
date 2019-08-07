@@ -29,7 +29,7 @@ namespace Paddywan
 
         private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage;
         private ConfigWrapper<int> cPredatoryBuffsPerStack;
-        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled;
+        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled, cCursedOSP;
 
 
 
@@ -64,13 +64,15 @@ namespace Paddywan
             _guilotineScalar = (cGuillotineScalar.Value > _guilotineScalarMin && cGuillotineScalar.Value <= _guilotineScalarMax) ? cGuillotineScalar.Value : _guilotineScalar;
             _guilotineCap = (cGuillotineCap.Value > _guilotineCapMin && cGuillotineCap.Value <= _guilotineCapMax) ? cGuillotineCap.Value : _guilotineCap;
 
-            cPredatoryEnabled = Config.Wrap("Predatory", "PredatoryEnmabled", "Enables linear predatory scaling: 3,6,9...", true);
+            cPredatoryEnabled = Config.Wrap("Predatory", "PredatoryEnabled", "Enables linear predatory scaling: 3,6,9...", true);
             cPredatoryBuffsPerStack = Config.Wrap("Predatory", "PredatoryBuffsPerStack", $"Alters the scaling of predatory isntincts to scale linearly instead of 3+2xStacks: >{_predatoryMin}i, {_predatoryBuffsPerStack}i default, <={_predatoryMax}", _predatoryBuffsPerStack);
             _predatoryBuffsPerStack = (cPredatoryBuffsPerStack.Value > _predatoryMin && cPredatoryBuffsPerStack.Value <= _predatoryMax) ? cPredatoryBuffsPerStack.Value : _predatoryBuffsPerStack;
 
             cAPElites = Config.Wrap("APRounds", "APElitesEnabled", "Alters the AP rounds to be inclusive of elite mobs", true);
             cAPDamage = Config.Wrap("APRounds", "APDamageScalar", $"Alters the AP damage scalar to be lower than default due to increased effectiveness: >{_APMin}f, {_APScalar}f default, <={_APMax}f", _APScalar);
             _APScalar = (cAPDamage.Value > _APMin && cAPDamage.Value <= _APMax) ? cAPDamage.Value : _APScalar;
+
+            cCursedOSP = Config.Wrap("OSP", "CursedOSPDisabled", "Disables One Shot Protection for Cursed characters(read as shaped glass, lunar potion curse", true);
 
             IL.RoR2.GlobalEventManager.OnHitEnemy += (il) =>
             {
@@ -218,6 +220,24 @@ namespace Paddywan
                 }
                 #endregion
 
+                #region OSP
+                if (cCursedOSP.Value)
+                {
+                    c.GotoNext(
+                        x => x.MatchLdloc(4),
+                        x => x.MatchLdarg(0),
+                        x => x.MatchCallvirt<HealthComponent>("get_fullCombinedHealth"),
+                        x => x.MatchLdcR4(0.9f),
+                        x => x.MatchMul()
+                        );
+                    c.Index += 5;
+                    c.Emit(OpCodes.Ldarg_0);
+                    c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("body"));
+                    c.Emit(OpCodes.Callvirt, typeof(CharacterBody).GetMethodCached("get_cursePenalty"));
+                    c.Emit(OpCodes.Mul);
+                }
+                #endregion
+
                 #region Guilotine
                 if (cGuillotineDeminishingThreshold.Value)
                 {
@@ -239,16 +259,17 @@ namespace Paddywan
                 }
                 //Debug.Log(il);
                 #endregion
+
+                
             };
         }
 
         public void Update()
         {
-            //TestHelper.itemSpawnHelper();
-            //TestHelper.spawnItem(KeyCode.F7, ItemIndex.BossDamageBonus);
-
-            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.ExecuteLowHealthElite);
-            //ItemIndex.BossDamageBonus
+            TestHelper.itemSpawnHelper();
+            TestHelper.spawnItem(KeyCode.F7, ItemIndex.StickyBomb);
+            TestHelper.spawnItem(KeyCode.F8, ItemIndex.BleedOnHit);
+            TestHelper.spawnItem(KeyCode.F8, ItemIndex.CritGlasses);
         }
     }
 }
