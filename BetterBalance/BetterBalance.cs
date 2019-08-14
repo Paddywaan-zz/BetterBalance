@@ -266,10 +266,10 @@ namespace Paddywan
 
         public void Update()
         {
-            TestHelper.itemSpawnHelper();
-            TestHelper.spawnItem(KeyCode.F7, ItemIndex.StickyBomb);
-            TestHelper.spawnItem(KeyCode.F8, ItemIndex.BleedOnHit);
-            TestHelper.spawnItem(KeyCode.F8, ItemIndex.CritGlasses);
+            //TestHelper.itemSpawnHelper();
+            //TestHelper.spawnItem(KeyCode.F7, ItemIndex.StickyBomb);
+            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.BleedOnHit);
+            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.CritGlasses);
         }
     }
 }
