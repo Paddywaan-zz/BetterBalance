@@ -36,6 +36,8 @@ Values available for configuration:
 
 * Armor piercing Multiplier - default: 0.1 (0.2 vanilla)
 
+* CursedOneShotProtection - default: enabled (disabled vanilla)
+
 
 I have exposed these values to allow people to implement their own perspective of "balance", whatever that may be, however I have limited these values with a minimum and maximum, as the idea of this mod is to balance, not to make everything easy and one-shotable. I believe I have been quite lenient with the maximum values, most of which scale to double the default  values. If you want to "one shot enemies harder" then this is not the mod for you.
 
