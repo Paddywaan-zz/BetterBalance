@@ -1,4 +1,6 @@
 # BetterBalance
+\*NEW\*: v1.0.2 - Implemented disabled OneShotProtection for cursePenalty(LunarDagger/Potion)
+
 BetterBalance is a mod designed to "rebalance" the damage values within the game due to a percieved imbalance of damage scaling. I have personally come to the conclusion that items such as shaped glass are not fitting with the scaling of other items, as exponential damage is impossible to balance correctly; it is limitless and stacks without penalty. Many of you will protest, but if you want buffed stickies, this mod also requires linear scaling shaped glass in order to maintain balance. This is my own implementation of "balance", and comes preconfigured with values which I find difficult, yet rewarding on monsoon difficulty with a group of 4 players. The balancing philosophy of this mod has been to increase the distribution of damage sources accross the board in order to "make up" for the lack of shaped glass damage scaling; to remove the "requirement" of taking shaped glass in order to scale damage and to provide alternative effective damage sources that feel rewarding when stacked.
 
 Sticky printers are a thing again, but not worthy of "I'm going to sacrafice all my white items for sticky's". They are valuable, but not the be-all end-all.
@@ -38,6 +40,8 @@ Values available for configuration:
 I have exposed these values to allow people to implement their own perspective of "balance", whatever that may be, however I have limited these values with a minimum and maximum, as the idea of this mod is to balance, not to make everything easy and one-shotable. I believe I have been quite lenient with the maximum values, most of which scale to double the default  values. If you want to "one shot enemies harder" then this is not the mod for you.
 
 ## Changelog
+v1.0.2 - Implemented disabled OneShotProtection for cursePenalty(LunarDagger/Potion)
+
 v1.0.1 - Adjusted maximum values as per feedback. Corrected some spelling mistakes, and probably made some more.
 
 v1.0.0 - Released.

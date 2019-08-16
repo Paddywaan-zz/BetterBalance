@@ -12,7 +12,7 @@ namespace Paddywan
 {
     [BepInDependency("com.bepis.r2api")]
     [BepInDependency("com.Squiddle.shapedglassbalance")]
-    [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.1")]
+    [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.2")]
     public class BetterBalance : BaseUnityPlugin
     {
         private float _stickyMultiplier = 5.0f, _stickyMin = 0f, _stickyMax = 10f,
@@ -262,14 +262,6 @@ namespace Paddywan
 
                 
             };
-        }
-
-        public void Update()
-        {
-            //TestHelper.itemSpawnHelper();
-            //TestHelper.spawnItem(KeyCode.F7, ItemIndex.StickyBomb);
-            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.BleedOnHit);
-            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.CritGlasses);
         }
     }
 }
