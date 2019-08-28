@@ -12,7 +12,7 @@ namespace Paddywan
 {
     [BepInDependency("com.bepis.r2api")]
     [BepInDependency("com.Squiddle.shapedglassbalance")]
-    [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.2")]
+    [BepInPlugin("com.Paddywan.BetterBalance", "BetterBalance", "1.0.3")]
     public class BetterBalance : BaseUnityPlugin
     {
         private float _stickyMultiplier = 5.0f, _stickyMin = 0f, _stickyMax = 10f,
@@ -24,14 +24,25 @@ namespace Paddywan
             _crowbarCap = 0.3f, _crowbarCapMin = 0f, _crowbarCapMax = 0.4f,
             _guilotineScalar = 0.10f, _guilotineScalarMin = 0f, _guilotineScalarMax = 0.3f,
             _guilotineCap = 0.45f, _guilotineCapMin = 0f, _guilotineCapMax = 0.6f,
-            _APScalar = 0.1f, _APMin = 0f, _APMax = 0.2f;
+            _APScalar = 0.1f, _APMin = 0f, _APMax = 0.2f,
+            _aegisMultiplier = 0.33f, _aegisMax = 0.33f, _aegisMin = 0.01f,
+            _brooch = 5f, _broochMin = 1f, _broochMax = 10f;
         private int _predatoryBuffsPerStack = 3, _predatoryMin = 2, _predatoryMax = 4;
 
-        private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage;
+        private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage, cBrooch;
         private ConfigWrapper<int> cPredatoryBuffsPerStack;
-        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled, cCursedOSP;
-
-
+        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled, cCursedOSP, cBleedProcChain, cAegisDecay, cAegisBuff;
+        /*private static ConfigWrapper<float> MyConfig;
+        private float myConfig
+        {
+            get { return GetValue(MyConfig.Value, 10.0f, 20.0f); }
+        }
+        private float GetValue(float value, float min, float max)
+        {
+            if(value < min) { return min; }
+            if(value > max) { return max; }
+            return value;
+        }*/
 
         public void Awake()
         {
@@ -43,6 +54,7 @@ namespace Paddywan
             cStickyMultiplier = Config.Wrap("Multipliers", "StickybombMultiplier", $"Modifies the damage multiplier of the stickybomb: >{_stickyMin}f, 1.8f vanilla, {_stickyMultiplier}f default, <={_stickyMax}f", _stickyMultiplier);
             cBleedMultiplier = Config.Wrap("Multipliers", "BleedDamageMultiplier", $"Modifies the damage multiplier value of tri-tip: >{_bleedDamageMin}f, 1.0f vanilla, {_bleedDamageMultiplier}f default <={_bleedDamageMax}f", _bleedDamageMultiplier);
             cBleedChancePerStack = Config.Wrap("Multipliers", "BleedChancePerStack", $"Modifies the chance of inflicting bleed with tri-tip: >{_bleedChanceMin}f, 15f vanilla, {_bleedChancePerStack}f default, <={_bleedChanceMax}f", _bleedChancePerStack);
+            cBleedProcChain = Config.Wrap("Multipliers", "BleedProcChainEnabled", $"Enables proc-chain triggered bleeds", true);
             cIceRingMultiplier = Config.Wrap("Multipliers", "IceRingMultiplier", $"Modifies the damage multiplier of the Ice Band: >{_iceRingMin}f, 1.25f vanilla, {_iceRingMultiplier}f default, <={_iceRingMax}f", _iceRingMultiplier);
             cUkuleleMultiplier = Config.Wrap("Multipliers", "UkeleleMultiplier", $"Modifies the damage multiplier of the Ukulele: >{_ukuleleMin}f, 0.8f vanilla, {_ukuleleMultiplier}f default, <={_ukuleleMax}f", _ukuleleMultiplier);
             _stickyMultiplier = (cStickyMultiplier.Value > _stickyMin && cStickyMultiplier.Value <= _stickyMax) ? cStickyMultiplier.Value : _stickyMultiplier;
@@ -72,11 +84,34 @@ namespace Paddywan
             cAPDamage = Config.Wrap("APRounds", "APDamageScalar", $"Alters the AP damage scalar to be lower than default due to increased effectiveness: >{_APMin}f, {_APScalar}f default, <={_APMax}f", _APScalar);
             _APScalar = (cAPDamage.Value > _APMin && cAPDamage.Value <= _APMax) ? cAPDamage.Value : _APScalar;
 
-            cCursedOSP = Config.Wrap("OSP", "CursedOSPDisabled", "Disables One Shot Protection for Cursed characters(read as shaped glass, lunar potion curse", true);
+            cCursedOSP = Config.Wrap("OSP", "CursedOSPDisabled", "Disables One Shot Protection for Cursed characters(read as shaped glass, lunar potion curse)", true);
+
+            cAegisDecay = Config.Wrap("Barrier", "DisableAegisDecay", "Barrier given by Aegis does not decay", true);
+            cAegisBuff = Config.Wrap("Barrier", "BuffAegis", "Aegis provides 33% instead of 20% of FullCombinedHealth as barrier", true);
+            cBrooch = Config.Wrap("Barrier","BroochBarrierVal", $"The value of barrier restored per kill: >{_broochMin}f, {_brooch}f default, <={_broochMax}f", _brooch);
+            _brooch = (cBrooch.Value > _broochMin && cBrooch.Value <= _broochMax) ? cBrooch.Value : _brooch;
+
 
             IL.RoR2.GlobalEventManager.OnHitEnemy += (il) =>
             {
                 var c = new ILCursor(il);
+                c.Index = 0;
+
+                //Bleed procchain
+                if (cBleedProcChain.Value)
+                {
+                    c.GotoNext(
+                        x => x.MatchLdarg(1),
+                        x => x.MatchLdflda<DamageInfo>("procChainMask"),
+                        x => x.MatchLdcI4(5),
+                        x => x.MatchCall<ProcChainMask>("HasProc")
+                        );
+                    c.Next.OpCode = OpCodes.Nop;
+                    c.Index++;
+                    c.RemoveRange(3);
+                    c.Emit(OpCodes.Ldc_I4_0);
+                }
+
                 //BleedChance
                 c.GotoNext(
                     x => x.MatchLdcR4(15f),
@@ -88,12 +123,23 @@ namespace Paddywan
 
                 //BleedDmg
                 c.GotoNext(
+                    x => x.MatchLdarg(1),
                     x => x.MatchLdfld<DamageInfo>("procCoefficient"),
                     x => x.MatchMul(),
                     x => x.MatchLdcR4(1f)
                     );
-                c.Index += 2;
-                c.Remove();
+                if (cBleedProcChain.Value)
+                {
+                    c.RemoveRange(2);
+                    c.Emit(OpCodes.Ldc_R4, 1f);
+                    c.Index += 1;
+                    c.Remove();
+                }
+                else
+                {
+                    c.Index += 3;
+                    c.Remove();
+                }
                 c.Emit(OpCodes.Ldc_R4, _bleedDamageMultiplier);
 
                 //Ukulele
@@ -121,6 +167,20 @@ namespace Paddywan
                 c.RemoveRange(2);
                 c.Emit(OpCodes.Ldc_R4, _iceRingMultiplier);
                 c.Emit(OpCodes.Ldc_R4, 2.5f);
+            };
+
+            IL.RoR2.GlobalEventManager.OnCharacterDeath += (il) => {
+                ILCursor c = new ILCursor(il);
+                int val, val2;
+                c.GotoNext(
+                    x => x.MatchLdloc(out val),
+                    x => x.MatchCallvirt<CharacterBody>("get_healthComponent"),
+                    x => x.MatchLdcR4(20f),
+                    x => x.MatchLdloc(out val2),
+                    x => x.MatchConvR4()
+                    );
+                c.Index += 2;
+                c.Next.Operand = _brooch;
             };
 
             IL.RoR2.CharacterBody.AddTimedBuff += (il) =>
@@ -262,6 +322,55 @@ namespace Paddywan
 
                 
             };
+
+            IL.RoR2.HealthComponent.Heal += (il) =>
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After,
+                    x => x.MatchLdfld<HealthComponent>("barrierOnOverHealCount"),
+                    x => x.MatchConvR4(),
+                    x => x.MatchMul(),
+                    x => x.MatchLdcR4(0.2f)
+                    );
+                if (cAegisBuff.Value) c.Prev.Operand = _aegisMultiplier;
+            };
+
+            IL.RoR2.HealthComponent.ServerFixedUpdate += (il) =>
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdfld<HealthComponent>("barrier"),
+                    x => x.MatchLdcR4(0)
+                    );
+                c.Index += 2;
+                //Debug.Log(c);
+                c.Remove();
+                //Debug.Log(c);
+                c.Emit(OpCodes.Ldarg_0);
+                c.EmitDelegate<Func<HealthComponent, float>>((hc) =>
+                {
+                    if (hc.body && hc.body.inventory && cAegisDecay.Value) return hc.fullCombinedHealth * (hc.body.inventory.GetItemCount(ItemIndex.BarrierOnOverHeal) * (cAegisBuff.Value ? _aegisMultiplier : 0.2f));
+                    return 0f;
+                });
+                Debug.Log(c);
+            };
+        }
+    }
+
+    class MinMaxConfig<T> where T : IComparable
+    {
+        public T GetValue(T value, T min, T max)
+        {
+            if (value.CompareTo(min) < 0)
+            {
+                return min;
+            }
+            if (value.CompareTo(max) > 0)
+            {
+                return max;
+            }
+            return value;
         }
     }
 }
