@@ -135,10 +135,16 @@ namespace Paddywan
                     x => x.MatchMul(),
                     x => x.MatchLdcR4(1f)
                     );
+                //BleedProcChain
                 if (cBleedProcChain.Value)
                 {
                     c.RemoveRange(2);
-                    c.Emit(OpCodes.Ldc_R4, 1f);
+                    c.Emit(OpCodes.Ldloc_0);
+                    c.Emit(OpCodes.Ldarg_1);
+                    c.EmitDelegate<Func<CharacterBody, DamageInfo, float>>((attacker, damageInfo) => {
+                        if (attacker.teamComponent.teamIndex == TeamIndex.Player) return 1f;
+                        return damageInfo.procCoefficient;
+                    });
                     c.Index += 1;
                     c.Remove();
                 }
@@ -149,6 +155,7 @@ namespace Paddywan
                 }
                 c.Emit(OpCodes.Ldc_R4, _bleedDamageMultiplier);
 
+                //Chrono
                 if (cChronoFix.Value)
                 {
                     int arg1, icount;
@@ -191,6 +198,7 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldc_R4, 2.5f);
             };
 
+            //Brooch
             IL.RoR2.GlobalEventManager.OnCharacterDeath += (il) => {
                 ILCursor c = new ILCursor(il);
                 int val, val2;
@@ -205,6 +213,7 @@ namespace Paddywan
                 c.Next.Operand = _brooch;
             };
 
+            //Predatory Stacks
             IL.RoR2.CharacterBody.AddTimedBuff += (il) =>
             {
                 var c = new ILCursor(il);
@@ -226,6 +235,7 @@ namespace Paddywan
                 }
             };
 
+            //cBar, AP, OSP
             IL.RoR2.HealthComponent.TakeDamage += (il) =>
             {
                 ILCursor c = new ILCursor(il);
@@ -345,6 +355,7 @@ namespace Paddywan
                 
             };
 
+            //Aegis
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
                 ILCursor c = new ILCursor(il);
@@ -357,6 +368,7 @@ namespace Paddywan
                 if (cAegisBuff.Value) c.Prev.Operand = _aegisMultiplier;
             };
 
+            //AegisDecay & multiplier
             IL.RoR2.HealthComponent.ServerFixedUpdate += (il) =>
             {
                 ILCursor c = new ILCursor(il);
@@ -381,6 +393,7 @@ namespace Paddywan
             if(cChronoFix.Value) On.RoR2.GlobalEventManager.OnHitEnemy += GlobalEventManager_OnHitEnemy;
         }
 
+        //ChronoRework
         private void GlobalEventManager_OnHitEnemy(On.RoR2.GlobalEventManager.orig_OnHitEnemy orig, GlobalEventManager self, DamageInfo damageInfo, GameObject victim)
         {
             orig(self, damageInfo, victim);
