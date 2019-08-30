@@ -386,8 +386,8 @@ namespace Paddywan
             orig(self, damageInfo, victim);
             var attacker = damageInfo.attacker ? damageInfo.attacker.GetComponent<CharacterBody>() : null;
             var cbVictim = victim ? victim.GetComponent<CharacterBody>() : null;
-            var chronoCount = attacker.inventory.GetItemCount(ItemIndex.SlowOnHit);
-            if (!cbVictim.isBoss && chronoCount > 0 && Util.CheckRoll((1f - 1f / (damageInfo.procCoefficient * _chronoChance * (float)chronoCount + 1f)) * 100f, attacker.master))
+            var chronoCount = attacker.inventory ? attacker.inventory.GetItemCount(ItemIndex.SlowOnHit) : 0;
+            if (attacker && victim && !cbVictim.isBoss && chronoCount > 0 && Util.CheckRoll((1f - 1f / (damageInfo.procCoefficient * _chronoChance * (float)chronoCount + 1f)) * 100f, attacker.master))
             {
                 cbVictim.AddTimedBuff(BuffIndex.BeetleJuice, 2f);
             }
