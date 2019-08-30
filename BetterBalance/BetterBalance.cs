@@ -31,7 +31,7 @@ namespace Paddywan
 
         private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage, cBrooch;
         private ConfigWrapper<int> cPredatoryBuffsPerStack;
-        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled, cCursedOSP, cBleedProcChain, cAegisDecay, cAegisBuff;
+        private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled, cCursedOSP, cBleedProcChain, cAegisDecay, cAegisBuff, cChronoFix;
         /*private static ConfigWrapper<float> MyConfig;
         private float myConfig
         {
@@ -91,6 +91,10 @@ namespace Paddywan
             cBrooch = Config.Wrap("Barrier","BroochBarrierVal", $"The value of barrier restored per kill: >{_broochMin}f, {_brooch}f default, <={_broochMax}f", _brooch);
             _brooch = (cBrooch.Value > _broochMin && cBrooch.Value <= _broochMax) ? cBrooch.Value : _brooch;
 
+            cChronoFix = Config.Wrap("ChronoBauble", "ChronoReworkEnabled", "Reworks the chronobauble to apply slow stacks to enemies onHit", true);
+
+
+
 
             IL.RoR2.GlobalEventManager.OnHitEnemy += (il) =>
             {
@@ -141,6 +145,21 @@ namespace Paddywan
                     c.Remove();
                 }
                 c.Emit(OpCodes.Ldc_R4, _bleedDamageMultiplier);
+
+                if (cChronoFix.Value)
+                {
+                    int arg1, icount;
+                    c.GotoNext(
+                        x => x.MatchLdloc(out arg1),
+                        x => x.MatchLdcI4(26),
+                        x => x.MatchLdcR4(2f),
+                        x => x.MatchLdloc(out icount),
+                        x => x.MatchConvR4(),
+                        x => x.MatchMul(),
+                        x => x.MatchCallvirt<CharacterBody>("AddTimedBuff")
+                        );
+                    c.RemoveRange(7);
+                }
 
                 //Ukulele
                 c.GotoNext(
@@ -355,6 +374,20 @@ namespace Paddywan
                 });
                 Debug.Log(c);
             };
+
+            if(cChronoFix.Value) On.RoR2.GlobalEventManager.OnHitEnemy += GlobalEventManager_OnHitEnemy;
+        }
+
+        private void GlobalEventManager_OnHitEnemy(On.RoR2.GlobalEventManager.orig_OnHitEnemy orig, GlobalEventManager self, DamageInfo damageInfo, GameObject victim)
+        {
+            orig(self, damageInfo, victim);
+            var attacker = damageInfo.attacker ? damageInfo.attacker.GetComponent<CharacterBody>() : null;
+            var cbVictim = victim ? victim.GetComponent<CharacterBody>() : null;
+            var chronoCount = attacker.inventory.GetItemCount(ItemIndex.SlowOnHit);
+            if (!cbVictim.isBoss && chronoCount > 0 && Util.CheckRoll((1f - 1f / (damageInfo.procCoefficient * 0.05f * (float)chronoCount + 1f)) * 100f, attacker.master))
+            {
+                cbVictim.AddTimedBuff(BuffIndex.BeetleJuice, 2f);
+            }
         }
     }
 
