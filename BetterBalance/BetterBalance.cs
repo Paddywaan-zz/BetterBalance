@@ -26,10 +26,12 @@ namespace Paddywan
             _guilotineCap = 0.45f, _guilotineCapMin = 0f, _guilotineCapMax = 0.6f,
             _APScalar = 0.1f, _APMin = 0f, _APMax = 0.2f,
             _aegisMultiplier = 0.33f, _aegisMax = 0.33f, _aegisMin = 0.01f,
-            _brooch = 5f, _broochMin = 1f, _broochMax = 10f;
+            _brooch = 5f, _broochMin = 1f, _broochMax = 10f,
+            _chronoChance = 0.05f, _chronoMin = 0f, _chronoMax = 0.1f
+            ;
         private int _predatoryBuffsPerStack = 3, _predatoryMin = 2, _predatoryMax = 4;
 
-        private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage, cBrooch;
+        private ConfigWrapper<float> cStickyMultiplier, cBleedMultiplier, cBleedChancePerStack, cIceRingMultiplier, cUkuleleMultiplier, cCrowbarScalar, cCrowbarCap, cGuillotineScalar, cGuillotineCap, cAPDamage, cBrooch, cChronoChance;
         private ConfigWrapper<int> cPredatoryBuffsPerStack;
         private ConfigWrapper<bool> cAPElites, cCrowbarDeminishingThreshold, cGuillotineDeminishingThreshold, cPredatoryEnabled, cCursedOSP, cBleedProcChain, cAegisDecay, cAegisBuff, cChronoFix;
         /*private static ConfigWrapper<float> MyConfig;
@@ -92,7 +94,8 @@ namespace Paddywan
             _brooch = (cBrooch.Value > _broochMin && cBrooch.Value <= _broochMax) ? cBrooch.Value : _brooch;
 
             cChronoFix = Config.Wrap("ChronoBauble", "ChronoReworkEnabled", "Reworks the chronobauble to apply slow stacks to enemies onHit", true);
-
+            cChronoChance = Config.Wrap("ChronoBauble", "ChronoProcChance", "The chance per hit per item to apply a single slow stack", _chronoChance);
+            _chronoChance = (cChronoChance.Value > _chronoMin && cChronoChance.Value <= _chronoMax) ? cChronoChance.Value : _chronoChance;
 
 
 
@@ -384,7 +387,7 @@ namespace Paddywan
             var attacker = damageInfo.attacker ? damageInfo.attacker.GetComponent<CharacterBody>() : null;
             var cbVictim = victim ? victim.GetComponent<CharacterBody>() : null;
             var chronoCount = attacker.inventory.GetItemCount(ItemIndex.SlowOnHit);
-            if (!cbVictim.isBoss && chronoCount > 0 && Util.CheckRoll((1f - 1f / (damageInfo.procCoefficient * 0.05f * (float)chronoCount + 1f)) * 100f, attacker.master))
+            if (!cbVictim.isBoss && chronoCount > 0 && Util.CheckRoll((1f - 1f / (damageInfo.procCoefficient * _chronoChance * (float)chronoCount + 1f)) * 100f, attacker.master))
             {
                 cbVictim.AddTimedBuff(BuffIndex.BeetleJuice, 2f);
             }
