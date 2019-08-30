@@ -153,7 +153,14 @@ namespace Paddywan
                     c.Index += 3;
                     c.Remove();
                 }
-                c.Emit(OpCodes.Ldc_R4, _bleedDamageMultiplier);
+                c.Emit(OpCodes.Ldloc_0);
+                c.Emit(OpCodes.Ldarg_1);
+                c.EmitDelegate<Func<CharacterBody, DamageInfo, float>>((attacker, damageInfo) =>
+                {
+                    if (attacker.teamComponent.teamIndex == TeamIndex.Player) return _bleedDamageMultiplier;
+                    return 1f;
+                });
+                //c.Emit(OpCodes.Ldc_R4, _bleedDamageMultiplier);
 
                 //Chrono
                 if (cChronoFix.Value)
